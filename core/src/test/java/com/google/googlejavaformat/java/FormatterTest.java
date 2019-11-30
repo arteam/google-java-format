@@ -14,27 +14,23 @@
 
 package com.google.googlejavaformat.java;
 
-import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
-import static org.junit.Assert.fail;
-
 import com.google.common.base.Joiner;
 import com.google.common.io.CharStreams;
 import com.google.googlejavaformat.java.JavaFormatterOptions.Style;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+import static org.junit.Assert.fail;
 
 /** Integration test for google-java-format. */
 @RunWith(JUnit4.class)
@@ -471,5 +467,14 @@ public final class FormatterTest {
                 + " unbroken sentence moving from topic to topic so that no-one had a"
                 + " chance to interrupt;\n"
                 + "}\n");
+  }
+
+  @Test
+  public void testSwitchExpressions() throws Exception {
+    String input =
+        getResource("com/google/googlejavaformat/java/testdata/SwitchExpressionTest.input");
+    String expectedOutput = getResource("com/google/googlejavaformat/java/testdata/SwitchExpressionTest.output");
+    String output = new Formatter().formatSource(input);
+    assertThat(output).isEqualTo(expectedOutput);
   }
 }

@@ -14,6 +14,30 @@
 
 package com.google.googlejavaformat.java;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
+import com.google.common.base.Verify;
+import com.google.common.collect.*;
+import com.google.googlejavaformat.*;
+import com.google.googlejavaformat.Doc.FillMode;
+import com.google.googlejavaformat.OpsBuilder.BlankLineWanted;
+import com.google.googlejavaformat.Output.BreakTag;
+import com.google.googlejavaformat.java.DimensionHelpers.SortedDims;
+import com.google.googlejavaformat.java.DimensionHelpers.TypeWithDims;
+import com.sun.source.tree.*;
+import com.sun.source.util.TreePath;
+import com.sun.source.util.TreePathScanner;
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeScanner;
+
+import javax.annotation.Nullable;
+import javax.lang.model.element.Name;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import static com.google.common.collect.Iterables.getLast;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.googlejavaformat.Doc.FillMode.INDEPENDENT;
@@ -21,134 +45,9 @@ import static com.google.googlejavaformat.Doc.FillMode.UNIFIED;
 import static com.google.googlejavaformat.Indent.If.make;
 import static com.google.googlejavaformat.OpsBuilder.BlankLineWanted.PRESERVE;
 import static com.google.googlejavaformat.OpsBuilder.BlankLineWanted.YES;
-import static com.google.googlejavaformat.java.Trees.getEndPosition;
-import static com.google.googlejavaformat.java.Trees.getLength;
-import static com.google.googlejavaformat.java.Trees.getMethodName;
-import static com.google.googlejavaformat.java.Trees.getSourceForNode;
-import static com.google.googlejavaformat.java.Trees.getStartPosition;
-import static com.google.googlejavaformat.java.Trees.operatorName;
-import static com.google.googlejavaformat.java.Trees.precedence;
-import static com.google.googlejavaformat.java.Trees.skipParen;
+import static com.google.googlejavaformat.java.Trees.*;
+import static com.sun.source.tree.Tree.Kind.*;
 import static java.util.stream.Collectors.toList;
-import static org.openjdk.source.tree.Tree.Kind.ANNOTATION;
-import static org.openjdk.source.tree.Tree.Kind.ARRAY_ACCESS;
-import static org.openjdk.source.tree.Tree.Kind.ASSIGNMENT;
-import static org.openjdk.source.tree.Tree.Kind.BLOCK;
-import static org.openjdk.source.tree.Tree.Kind.EXTENDS_WILDCARD;
-import static org.openjdk.source.tree.Tree.Kind.IF;
-import static org.openjdk.source.tree.Tree.Kind.METHOD_INVOCATION;
-import static org.openjdk.source.tree.Tree.Kind.NEW_ARRAY;
-import static org.openjdk.source.tree.Tree.Kind.NEW_CLASS;
-import static org.openjdk.source.tree.Tree.Kind.STRING_LITERAL;
-import static org.openjdk.source.tree.Tree.Kind.UNION_TYPE;
-import static org.openjdk.source.tree.Tree.Kind.VARIABLE;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Predicate;
-import com.google.common.base.Throwables;
-import com.google.common.base.Verify;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Streams;
-import com.google.googlejavaformat.CloseOp;
-import com.google.googlejavaformat.Doc;
-import com.google.googlejavaformat.Doc.FillMode;
-import com.google.googlejavaformat.FormattingError;
-import com.google.googlejavaformat.Indent;
-import com.google.googlejavaformat.Input;
-import com.google.googlejavaformat.Op;
-import com.google.googlejavaformat.OpenOp;
-import com.google.googlejavaformat.OpsBuilder;
-import com.google.googlejavaformat.OpsBuilder.BlankLineWanted;
-import com.google.googlejavaformat.Output.BreakTag;
-import com.google.googlejavaformat.java.DimensionHelpers.SortedDims;
-import com.google.googlejavaformat.java.DimensionHelpers.TypeWithDims;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-import javax.annotation.Nullable;
-import org.openjdk.javax.lang.model.element.Name;
-import org.openjdk.source.tree.AnnotatedTypeTree;
-import org.openjdk.source.tree.AnnotationTree;
-import org.openjdk.source.tree.ArrayAccessTree;
-import org.openjdk.source.tree.ArrayTypeTree;
-import org.openjdk.source.tree.AssertTree;
-import org.openjdk.source.tree.AssignmentTree;
-import org.openjdk.source.tree.BinaryTree;
-import org.openjdk.source.tree.BlockTree;
-import org.openjdk.source.tree.BreakTree;
-import org.openjdk.source.tree.CaseTree;
-import org.openjdk.source.tree.CatchTree;
-import org.openjdk.source.tree.ClassTree;
-import org.openjdk.source.tree.CompilationUnitTree;
-import org.openjdk.source.tree.CompoundAssignmentTree;
-import org.openjdk.source.tree.ConditionalExpressionTree;
-import org.openjdk.source.tree.ContinueTree;
-import org.openjdk.source.tree.DirectiveTree;
-import org.openjdk.source.tree.DoWhileLoopTree;
-import org.openjdk.source.tree.EmptyStatementTree;
-import org.openjdk.source.tree.EnhancedForLoopTree;
-import org.openjdk.source.tree.ExportsTree;
-import org.openjdk.source.tree.ExpressionStatementTree;
-import org.openjdk.source.tree.ExpressionTree;
-import org.openjdk.source.tree.ForLoopTree;
-import org.openjdk.source.tree.IdentifierTree;
-import org.openjdk.source.tree.IfTree;
-import org.openjdk.source.tree.ImportTree;
-import org.openjdk.source.tree.InstanceOfTree;
-import org.openjdk.source.tree.IntersectionTypeTree;
-import org.openjdk.source.tree.LabeledStatementTree;
-import org.openjdk.source.tree.LambdaExpressionTree;
-import org.openjdk.source.tree.LiteralTree;
-import org.openjdk.source.tree.MemberReferenceTree;
-import org.openjdk.source.tree.MemberSelectTree;
-import org.openjdk.source.tree.MethodInvocationTree;
-import org.openjdk.source.tree.MethodTree;
-import org.openjdk.source.tree.ModifiersTree;
-import org.openjdk.source.tree.ModuleTree;
-import org.openjdk.source.tree.NewArrayTree;
-import org.openjdk.source.tree.NewClassTree;
-import org.openjdk.source.tree.OpensTree;
-import org.openjdk.source.tree.ParameterizedTypeTree;
-import org.openjdk.source.tree.ParenthesizedTree;
-import org.openjdk.source.tree.PrimitiveTypeTree;
-import org.openjdk.source.tree.ProvidesTree;
-import org.openjdk.source.tree.RequiresTree;
-import org.openjdk.source.tree.ReturnTree;
-import org.openjdk.source.tree.StatementTree;
-import org.openjdk.source.tree.SwitchTree;
-import org.openjdk.source.tree.SynchronizedTree;
-import org.openjdk.source.tree.ThrowTree;
-import org.openjdk.source.tree.Tree;
-import org.openjdk.source.tree.TryTree;
-import org.openjdk.source.tree.TypeCastTree;
-import org.openjdk.source.tree.TypeParameterTree;
-import org.openjdk.source.tree.UnaryTree;
-import org.openjdk.source.tree.UnionTypeTree;
-import org.openjdk.source.tree.UsesTree;
-import org.openjdk.source.tree.VariableTree;
-import org.openjdk.source.tree.WhileLoopTree;
-import org.openjdk.source.tree.WildcardTree;
-import org.openjdk.source.util.TreePath;
-import org.openjdk.source.util.TreePathScanner;
-import org.openjdk.tools.javac.code.Flags;
-import org.openjdk.tools.javac.tree.JCTree;
-import org.openjdk.tools.javac.tree.TreeScanner;
 
 /**
  * An AST visitor that builds a stream of {@link Op}s to format from the given {@link
@@ -1777,17 +1676,47 @@ public final class JavaInputAstVisitor extends TreePathScanner<Void, Void> {
     sync(node);
     markForPartialFormat();
     builder.forcedBreak();
+    CaseTree.CaseKind caseKind = node.getCaseKind();
     if (node.getExpression() == null) {
       token("default", plusTwo);
-      token(":");
+      if (caseKind == CaseTree.CaseKind.STATEMENT) {
+        token(":");
+      } else if (caseKind == CaseTree.CaseKind.RULE) {
+        builder.space();
+        builder.op("->");
+        builder.space();
+      }
     } else {
       token("case", plusTwo);
       builder.space();
-      scan(node.getExpression(), null);
-      token(":");
+      if (caseKind == CaseTree.CaseKind.STATEMENT) {
+        scan(node.getExpression(), null);
+        token(":");
+      } else if (caseKind == CaseTree.CaseKind.RULE) {
+        List<? extends ExpressionTree> expressions = node.getExpressions();
+        for (int i = 0; i < expressions.size(); i++) {
+          scan(expressions.get(i), null);
+          if (expressions.size() > 1 && i < expressions.size() - 1) {
+            token(",");
+            builder.space();
+          }
+        }
+        builder.space();
+        builder.op("->");
+        builder.space();
+      }
     }
     builder.open(plusTwo);
-    visitStatements(node.getStatements());
+    if (caseKind == CaseTree.CaseKind.STATEMENT) {
+      visitStatements(node.getStatements());
+    } else if (caseKind == CaseTree.CaseKind.RULE) {
+      Tree body = node.getBody();
+      Tree.Kind kind = body.getKind();
+      scan(body, null);
+      if (kind != THROW && kind != EXPRESSION_STATEMENT && kind != BLOCK) {
+        token(";");
+      }
+    }
     builder.close();
     return null;
   }
@@ -1816,6 +1745,45 @@ public final class JavaInputAstVisitor extends TreePathScanner<Void, Void> {
     builder.forcedBreak();
     builder.blankLineWanted(BlankLineWanted.NO);
     token("}", plusFour);
+    return null;
+  }
+
+  @Override
+  public Void visitSwitchExpression(SwitchExpressionTree node, Void aVoid) {
+    sync(node);
+    token("switch");
+    builder.space();
+    token("(");
+    scan(skipParen(node.getExpression()), null);
+    token(")");
+    builder.space();
+    tokenBreakTrailingComment("{", plusTwo);
+    builder.blankLineWanted(BlankLineWanted.NO);
+    builder.open(plusTwo);
+    boolean first = true;
+    for (CaseTree caseTree : node.getCases()) {
+      if (!first) {
+        builder.blankLineWanted(BlankLineWanted.PRESERVE);
+      }
+      scan(caseTree, null);
+      first = false;
+    }
+    builder.close();
+    builder.forcedBreak();
+    builder.blankLineWanted(BlankLineWanted.NO);
+    token("}", plusFour);
+    return null;
+  }
+
+  @Override
+  public Void visitYield(YieldTree node, Void aVoid) {
+    sync(node);
+    token("yield");
+    if (node.getValue() != null) {
+      builder.space();
+      scan(node.getValue(), null);
+    }
+    token(";");
     return null;
   }
 

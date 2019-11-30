@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
-import org.openjdk.tools.javac.parser.Tokens.TokenKind;
+import com.sun.tools.javac.parser.Tokens.TokenKind;
 
 /** Orders imports in Java source code. */
 public class ImportOrderer {

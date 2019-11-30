@@ -37,27 +37,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
-import org.openjdk.javax.tools.Diagnostic;
-import org.openjdk.javax.tools.DiagnosticCollector;
-import org.openjdk.javax.tools.DiagnosticListener;
-import org.openjdk.javax.tools.JavaFileObject;
-import org.openjdk.javax.tools.SimpleJavaFileObject;
-import org.openjdk.javax.tools.StandardLocation;
-import org.openjdk.source.tree.BinaryTree;
-import org.openjdk.source.tree.LiteralTree;
-import org.openjdk.source.tree.MemberSelectTree;
-import org.openjdk.source.tree.Tree;
-import org.openjdk.source.tree.Tree.Kind;
-import org.openjdk.source.util.TreePath;
-import org.openjdk.source.util.TreePathScanner;
-import org.openjdk.tools.javac.file.JavacFileManager;
-import org.openjdk.tools.javac.parser.JavacParser;
-import org.openjdk.tools.javac.parser.ParserFactory;
-import org.openjdk.tools.javac.tree.JCTree;
-import org.openjdk.tools.javac.util.Context;
-import org.openjdk.tools.javac.util.Log;
-import org.openjdk.tools.javac.util.Options;
-import org.openjdk.tools.javac.util.Position;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardLocation;
+import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.LiteralTree;
+import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
+import com.sun.source.util.TreePath;
+import com.sun.source.util.TreePathScanner;
+import com.sun.tools.javac.file.JavacFileManager;
+import com.sun.tools.javac.main.Option;
+import com.sun.tools.javac.parser.JavacParser;
+import com.sun.tools.javac.parser.ParserFactory;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.util.Context;
+import com.sun.tools.javac.util.Log;
+import com.sun.tools.javac.util.Options;
+import com.sun.tools.javac.util.Position;
 
 /** Wraps string literals that exceed the column limit. */
 public final class StringWrapper {
@@ -373,6 +374,7 @@ public final class StringWrapper {
     Context context = new Context();
     context.put(DiagnosticListener.class, diagnostics);
     Options.instance(context).put("allowStringFolding", Boolean.toString(allowStringFolding));
+    Options.instance(context).put(Option.PREVIEW, "true");
     JCTree.JCCompilationUnit unit;
     JavacFileManager fileManager = new JavacFileManager(context, true, UTF_8);
     try {
