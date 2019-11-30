@@ -453,4 +453,14 @@ public final class FormatterTest {
     assertThat(RemoveUnusedImports.removeUnusedImports(withoutBlank)).isEqualTo(withoutBlank);
     assertThat(ImportOrderer.reorderImports(withoutBlank)).isEqualTo(withoutBlank);
   }
+
+  @Test
+  public void testSwitchExpressions() throws Exception {
+    String input =
+        getResource("com/google/googlejavaformat/java/testdata/SwitchExpressionTest.input");
+    String expectedOutput =
+        getResource("com/google/googlejavaformat/java/testdata/SwitchExpressionTest.output");
+    String output = new Formatter().formatSource(input);
+    assertThat(output).isEqualTo(expectedOutput);
+  }
 }

@@ -110,6 +110,7 @@ public class MainTest {
                     Paths.get(System.getProperty("java.home")).resolve("bin/java").toString(),
                     "-cp",
                     System.getProperty("java.class.path"),
+                    "--enable-preview",
                     Main.class.getName()))
             .redirectError(Redirect.PIPE)
             .redirectOutput(Redirect.PIPE)
@@ -436,6 +437,7 @@ public class MainTest {
                     Paths.get(System.getProperty("java.home")).resolve("bin/java").toString(),
                     "-cp",
                     System.getProperty("java.class.path"),
+                    "--enable-preview",
                     Main.class.getName(),
                     "-n",
                     "--set-exit-if-changed",
@@ -462,6 +464,7 @@ public class MainTest {
                     Paths.get(System.getProperty("java.home")).resolve("bin/java").toString(),
                     "-cp",
                     System.getProperty("java.class.path"),
+                    "--enable-preview",
                     Main.class.getName(),
                     "-n",
                     "--set-exit-if-changed",
