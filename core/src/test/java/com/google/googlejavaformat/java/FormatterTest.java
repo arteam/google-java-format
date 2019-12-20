@@ -477,4 +477,13 @@ public final class FormatterTest {
     String output = new Formatter().formatSource(input);
     assertThat(output).isEqualTo(expectedOutput);
   }
+
+  @Test
+  public void testTextBlocks() throws Exception {
+    String input =
+            getResource("com/google/googlejavaformat/java/testdata/TextBlockTest.input");
+    String expectedOutput = getResource("com/google/googlejavaformat/java/testdata/TextBlockTest.output");
+    String output = new Formatter().formatSource(input);
+    assertThat(output).isEqualTo(expectedOutput);
+  }
 }
