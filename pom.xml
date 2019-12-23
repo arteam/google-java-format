@@ -28,7 +28,7 @@
   <groupId>com.github.arteam</groupId>
   <artifactId>google-java-format-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.7-jdk13</version>
 
   <modules>
     <module>core</module>
